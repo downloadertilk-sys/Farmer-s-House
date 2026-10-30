@@ -1,5 +1,72 @@
 
+name: Build TaungThuEain POS APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
+
+      - name: Create Android wrapper
+        run: |
+          mkdir -p android-wrapper/www
+          cd android-wrapper
+          npm init -y
+          npm install @capacitor/core@7 @capacitor/android@7
+          npm install --save-dev @capacitor/cli@7
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.taungthueain.pos",
+            "appName": "TaungThuEain POS",
+            "webDir": "www",
+            "server": {
+              "url": "https://downloadertilk-sys.github.io/Farmer-s-House/",
+              "cleartext": false,
+              "allowNavigation": [
+                "downloadertilk-sys.github.io",
+                "farmer-s-house.firebaseapp.com",
+                "www.gstatic.com"
+              ]
+            }
+          }
+          EOF
+          echo '<html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body></body></html>' > www/index.html
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK
+        working-directory: android-wrapper/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaungThuEain-POS-APK
+          path: android-wrapper/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
