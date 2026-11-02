@@ -1,0 +1,21 @@
+{
+  "name": "တောင်သူ့အိမ် POS",
+  "short_name": "တောင်သူ့အိမ်",
+  "lang": "my",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#065f46",
+  "icons": [
+    {
+      "src": "taungthu-eain-app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "taungthu-eain-app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

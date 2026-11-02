@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function hasProfile() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff'];
+    }
+    function isAdmin() {
+      return hasProfile()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function hasPermission(permission) {
+      return hasProfile()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.get('permissions', {}).get(permission, false) == true;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+    match /products/{id} {
+      allow read: if hasProfile();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (hasProfile()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock', 'updatedAt'])
+          && request.resource.data.stock is number
+          && request.resource.data.stock >= 0
+          && request.resource.data.stock <= resource.data.stock);
+    }
+    match /sales/{id} {
+      allow read: if hasProfile();
+      allow create: if hasProfile();
+      allow update, delete: if isAdmin();
+    }
+    match /expenses/{id} {
+      allow read, write: if hasProfile();
+    }
+    match /settings/{id} {
+      allow read: if hasProfile();
+      allow create, update, delete: if isAdmin();
+    }
+    match /customers/{id} {
+      allow read: if hasProfile();
+      allow create: if isAdmin() || hasPermission('allowAddCustomer');
+      allow update, delete: if isAdmin();
+    }
+    match /customer_debts/{id} {
+      allow read: if hasProfile();
+      allow create: if hasProfile();
+      allow update, delete: if isAdmin() || hasPermission('allowManageDebts');
+    }
+    match /customer_repayments/{id} {
+      allow read: if hasProfile();
+      allow create: if hasProfile();
+      allow update, delete: if isAdmin() || hasPermission('allowManageRepayments');
+    }
+    match /stock_entries/{id} {
+      allow read: if hasProfile();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
