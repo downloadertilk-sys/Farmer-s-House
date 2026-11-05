@@ -27,7 +27,9 @@ jobs:
           java-version: 21
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
 
       - name: Create Android wrapper
         run: |
@@ -62,12 +64,12 @@ jobs:
       - name: Add TaungThuEain App Logo
         run: |
           test -f TaungThuEain-Android-Logo-Assets.zip
+
           mkdir -p logo-assets
           unzip -o TaungThuEain-Android-Logo-Assets.zip -d logo-assets
 
           cp -R logo-assets/res/. android-wrapper/android/app/src/main/res/
 
-          echo "Checking app icon files..."
           test -f android-wrapper/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
           test -f android-wrapper/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           test -f android-wrapper/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
