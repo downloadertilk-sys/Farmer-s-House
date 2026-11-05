@@ -1,4 +1,3 @@
-
 name: Build TaungThuEain POS APK
 
 on:
@@ -57,27 +56,42 @@ jobs:
           EOF
 
           echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>' > www/index.html
-
           npx cap add android
           npx cap sync android
 
-      - name: Add TaungThuEain App Logo
+      - name: Install TaungThuEain launcher icons
         run: |
-          test -f TaungThuEain-Android-Logo-Assets.zip
-
+          test -f TaungThuEain-Android-Logo-Assets-v3.zip
           mkdir -p logo-assets
-          unzip -o TaungThuEain-Android-Logo-Assets.zip -d logo-assets
+          unzip -o TaungThuEain-Android-Logo-Assets-v3.zip -d logo-assets
 
-          # Keep Android's original background color resource
-          rm -f logo-assets/res/values/colors.xml
+          APP_RES="android-wrapper/android/app/src/main/res"
+          cp -R logo-assets/res/. "$APP_RES/"
 
-          # Copy the logo resources
-          cp -R logo-assets/res/. android-wrapper/android/app/src/main/res/
+          # Force both launcher icon references to the supplied TaungThuEain assets.
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
 
-          echo "Checking app icon files..."
-          test -f android-wrapper/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          test -f android-wrapper/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          test -f android-wrapper/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          manifest = Path("android-wrapper/android/app/src/main/AndroidManifest.xml")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          ns = "{http://schemas.android.com/apk/res/android}"
+          app = root.find("application")
+          if app is None:
+              raise SystemExit("AndroidManifest.xml has no application element")
+          app.set(ns + "icon", "@mipmap/ic_launcher")
+          app.set(ns + "roundIcon", "@mipmap/ic_launcher_round")
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+          tree.write(manifest, encoding="utf-8", xml_declaration=True)
+          PY
+
+          test -f "$APP_RES/mipmap-mdpi/ic_launcher.png"
+          test -f "$APP_RES/mipmap-mdpi/ic_launcher_round.png"
+          test -f "$APP_RES/mipmap-anydpi-v26/ic_launcher.xml"
+          test -f "$APP_RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+          grep -q '@mipmap/ic_launcher' android-wrapper/android/app/src/main/AndroidManifest.xml
+          grep -q '@mipmap/ic_launcher_round' android-wrapper/android/app/src/main/AndroidManifest.xml
 
       - name: Build APK
         working-directory: android-wrapper/android
