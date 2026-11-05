@@ -1,42 +1,33 @@
 name: Build TaungThuEain POS APK
-
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
-
       - name: Create Android wrapper
         run: |
           mkdir -p android-wrapper/www
           cd android-wrapper
           npm init -y
           npm install @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
-
           cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.taungthueain.pos",
@@ -54,25 +45,20 @@ jobs:
             }
           }
           EOF
-
           echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>' > www/index.html
           npx cap add android
           npx cap sync android
-
       - name: Install TaungThuEain launcher icons
         run: |
           test -f TaungThuEain-Android-Logo-Assets-v3.zip
           mkdir -p logo-assets
           unzip -o TaungThuEain-Android-Logo-Assets-v3.zip -d logo-assets
-
           APP_RES="android-wrapper/android/app/src/main/res"
+          rm -f logo-assets/res/values/colors.xml
           cp -R logo-assets/res/. "$APP_RES/"
-
-          # Force both launcher icon references to the supplied TaungThuEain assets.
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-
           manifest = Path("android-wrapper/android/app/src/main/AndroidManifest.xml")
           tree = ET.parse(manifest)
           root = tree.getroot()
@@ -85,20 +71,18 @@ jobs:
           ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
           tree.write(manifest, encoding="utf-8", xml_declaration=True)
           PY
-
           test -f "$APP_RES/mipmap-mdpi/ic_launcher.png"
           test -f "$APP_RES/mipmap-mdpi/ic_launcher_round.png"
+          test -f "$APP_RES/mipmap-xxxhdpi/ic_launcher.png"
           test -f "$APP_RES/mipmap-anydpi-v26/ic_launcher.xml"
           test -f "$APP_RES/mipmap-anydpi-v26/ic_launcher_round.xml"
           grep -q '@mipmap/ic_launcher' android-wrapper/android/app/src/main/AndroidManifest.xml
           grep -q '@mipmap/ic_launcher_round' android-wrapper/android/app/src/main/AndroidManifest.xml
-
       - name: Build APK
         working-directory: android-wrapper/android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
