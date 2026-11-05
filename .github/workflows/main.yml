@@ -68,8 +68,13 @@ jobs:
           mkdir -p logo-assets
           unzip -o TaungThuEain-Android-Logo-Assets.zip -d logo-assets
 
+          # Keep Android's original background color resource
+          rm -f logo-assets/res/values/colors.xml
+
+          # Copy the logo resources
           cp -R logo-assets/res/. android-wrapper/android/app/src/main/res/
 
+          echo "Checking app icon files..."
           test -f android-wrapper/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
           test -f android-wrapper/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           test -f android-wrapper/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
