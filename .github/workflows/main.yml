@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,16 +28,14 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
 
       - name: Create Android wrapper
         run: |
           mkdir -p android-wrapper/www
           cd android-wrapper
           npm init -y
-          npm install @capacitor/core@7 @capacitor/android@7
-          npm install --save-dev @capacitor/cli@7
+          npm install @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+
           cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.taungthueain.pos",
@@ -48,15 +46,31 @@ jobs:
               "cleartext": false,
               "allowNavigation": [
                 "downloadertilk-sys.github.io",
-                "farmer-s-house.firebaseapp.com",
-                "www.gstatic.com"
+                "*.firebaseapp.com",
+                "*.googleapis.com",
+                "*.gstatic.com"
               ]
             }
           }
           EOF
-          echo '<html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body></body></html>' > www/index.html
+
+          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>' > www/index.html
+
           npx cap add android
           npx cap sync android
+
+      - name: Add TaungThuEain App Logo
+        run: |
+          test -f TaungThuEain-Android-Logo-Assets.zip
+          mkdir -p logo-assets
+          unzip -o TaungThuEain-Android-Logo-Assets.zip -d logo-assets
+
+          cp -R logo-assets/res/. android-wrapper/android/app/src/main/res/
+
+          echo "Checking app icon files..."
+          test -f android-wrapper/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          test -f android-wrapper/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          test -f android-wrapper/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
 
       - name: Build APK
         working-directory: android-wrapper/android
